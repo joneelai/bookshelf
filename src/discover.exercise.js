@@ -3,11 +3,12 @@ import {jsx} from '@emotion/core'
 
 import './bootstrap'
 import Tooltip from '@reach/tooltip'
-import {FaSearch} from 'react-icons/fa'
+import {FaSearch, FaTimes} from 'react-icons/fa'
 import {Input, BookListUL, Spinner} from './components/lib'
 import {BookRow} from './components/book-row'
 import React from 'react'
 import {client} from './utils/api-client'
+import * as colors from './styles/colors'
 
 function DiscoverBooksScreen() {
   // 🐨 add state for status ('idle', 'loading', or 'success'), data, and query
@@ -16,13 +17,15 @@ function DiscoverBooksScreen() {
   // user has submitted the form, so you'll need a boolean for that as well
   // 💰 I called it "queried"
   const [status, setStatus] = React.useState('idle')
-  const [data, setData] = React.useState()
-  const [query, setQuery] = React.useState(null)
-  let queried = query !== null ? true : false
+  const [data, setData] = React.useState(null)
+  const [query, setQuery] = React.useState('')
+  const [queried, setQueried] = React.useState(false)
+  const [error, setError] = React.useState(false)
 
   // 🐨 replace these with derived state values based on the status.
-  const isLoading = status === 'loading' ? true : false
-  const isSuccess = status === 'success' ? true : false
+  const isLoading = status === 'loading'
+  const isSuccess = status === 'success'
+  const isError = status === 'error'
 
   // 🐨 Add a useEffect callback here for making the request with the
   // client and updating the status and data.
@@ -35,10 +38,16 @@ function DiscoverBooksScreen() {
       return
     }
     setStatus('loading')
-    client(`books?query=${encodeURIComponent(query)}`).then(responseData => {
-      setData(responseData)
-      setStatus('success')
-    })
+    client(`books?query=${encodeURIComponent(query)}`).then(
+      responseData => {
+        setData(responseData)
+        setStatus('success')
+      },
+      errorData => {
+        setError(errorData)
+        setStatus('error')
+      },
+    )
   }, [query, queried])
 
   function handleSearchSubmit(event) {
@@ -47,7 +56,9 @@ function DiscoverBooksScreen() {
     // 🐨 set the query value which you can get from event.target.elements
     // 💰 console.log(event.target.elements) if you're not sure.
     event.preventDefault()
-    setQuery(event.target.elements[0].value)
+    // search is the id of the wanted element
+    setQuery(event.target.elements.search.value)
+    setQueried(true)
   }
 
   return (
@@ -71,11 +82,24 @@ function DiscoverBooksScreen() {
                 background: 'transparent',
               }}
             >
-              {isLoading ? <Spinner /> : <FaSearch aria-label="search" />}
+              {isLoading ? (
+                <Spinner />
+              ) : isError ? (
+                <FaTimes aria-label="error" css={{color: colors.danger}} />
+              ) : (
+                <FaSearch aria-label="search" />
+              )}
             </button>
           </label>
         </Tooltip>
       </form>
+
+      {isError ? (
+        <div css={{color: colors.danger}}>
+          <p>There was an error:</p>
+          <pre>{error.message}</pre>
+        </div>
+      ) : null}
 
       {isSuccess ? (
         data?.books?.length ? (

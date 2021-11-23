@@ -12,13 +12,19 @@ function client(endpoint, customConfig = {}) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(),
     ...customConfig,
   }
 
   return window
     .fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, config)
-    .then(response => response.json())
+    .then(async response => {
+      const data = await response.json()
+      if (response.ok) {
+        return data
+      } else {
+        return Promise.reject(data)
+      }
+    })
 }
 
 export {client}
